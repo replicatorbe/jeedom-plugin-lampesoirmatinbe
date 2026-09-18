@@ -96,9 +96,13 @@ position.
 
 | Command | Type | Role |
 |---|---|---|
-| **Next change** | info | "Switch on today 20:42". Visible on the dashboard. |
+| **Next change** | info | "Switch on today 20:42", or "Paused". Visible on the dashboard. |
 | **Switch on** / **Switch off** | action | Acts on the whole group, by hand or from a scenario. |
+| **Toggle** | action | The opposite of the last known order. For a wall switch that can only do one thing. |
 | **State** | binary info | The last order sent by the plugin. Logged. |
+| **Last change** | info | "Switched on today 19:36 (schedule)". Answers "did it work last night?" on its own. |
+| **Schedule active** | binary info | 0 when the group is paused. Logged. |
+| **Pause** / **Resume** | action | Holiday mode, drivable from a scenario. |
 | **Next evening** / **Next morning** | info | The two appointments separately. |
 | **Sunrise** / **Sunset** | info | Today's times, useful in scenarios. |
 
@@ -107,6 +111,23 @@ be shown again if you have a use for them.
 
 **"State" is the plugin's state, not the bulb's.** The plugin sends orders, it
 does not watch what a wall switch does on its side.
+
+## Pausing a group
+
+Going away for a fortnight, or simply not wanting light tonight, has nothing to
+do with disabling the device: that would take it off the dashboard, its buttons
+would stop answering and its commands would vanish from scenarios.
+
+**Pause** stops both moments, and nothing else. The group stays whole, you can
+still switch it on by hand, and its tile shows "Paused" instead of announcing an
+appointment it would not honour. The button is in the *Lamps* tab, and the
+**Pause** and **Resume** commands can be driven from a scenario — that is how a
+holiday mode or a presence detector is wired in.
+
+The pause is stored in the database, not in the cache: it survives a reboot, an
+update and a cache flush. A paused and forgotten group being the plugin's
+quietest failure — everything works, and nothing lights up — the Health page
+counts them, and the home page marks them in orange.
 
 ## Catch-up
 

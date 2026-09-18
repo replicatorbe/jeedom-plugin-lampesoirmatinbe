@@ -170,12 +170,17 @@ function lampesoirmatinbeSlot($_key, $_title, $_icon, $_help) {
 		echo '<div class="eqLogicThumbnailContainer">';
 		foreach ($eqLogics as $eqLogic) {
 			$opacity = ($eqLogic->getIsEnable()) ? '' : 'disableCard';
-			$lamps = count($eqLogic->lampList());
+			/* Ce que ce groupe fera ce soir, sur la carte : c'est la seule page
+			   d'où l'on voit toute la maison d'un coup d'oeil, et un nombre de
+			   lampes n'y apprend rien qu'on ne sache déjà. */
+			$summary = $eqLogic->cardSummary();
 			echo '<div class="eqLogicDisplayCard cursor ' . $opacity . '" data-eqLogic_id="' . $eqLogic->getId() . '">';
-			echo '<i class="fas fa-lightbulb" style="font-size:4em;"></i>';
+			echo '<i class="fas ' . ($summary['paused'] ? 'fa-pause-circle' : 'fa-lightbulb') . '" style="font-size:4em;"></i>';
 			echo '<br>';
 			echo '<span class="name">' . $eqLogic->getHumanName(true, true) . '</span>';
-			echo '<br><span style="font-size:0.85em;opacity:0.7;">' . $lamps . ' {{lampe(s)}}</span>';
+			echo '<br><span style="font-size:0.85em;opacity:0.7;">' . $summary['lamps'] . ' {{lampe(s)}}</span>';
+			echo '<br><span style="font-size:0.85em;' . ($summary['paused'] ? 'color:#f0ad4e;' : 'opacity:0.7;') . '">'
+			   . $summary['text'] . '</span>';
 			echo '<span class="hiddenAsCard displayTableRight hidden">';
 			echo ($eqLogic->getIsVisible() == 1) ? '<i class="fas fa-eye" title="{{Equipement visible}}"></i>' : '<i class="fas fa-eye-slash" title="{{Equipement non visible}}"></i>';
 			echo '</span>';
@@ -249,6 +254,22 @@ function lampesoirmatinbeSlot($_key, $_title, $_icon, $_help) {
 								<label class="col-sm-2 control-label">{{Visible}}</label>
 								<div class="col-sm-2">
 									<input type="checkbox" class="eqLogicAttr" data-l1key="isVisible" checked>
+								</div>
+							</div>
+						</fieldset>
+						<fieldset>
+							<legend><i class="fas fa-power-off"></i> {{Programmation}}</legend>
+							<div class="form-group">
+								<label class="col-sm-4 control-label">{{État}}</label>
+								<div class="col-sm-8">
+									<span id="span_lampesoirmatinbePaused" class="label label-success">{{Active}}</span>
+									<a class="btn btn-sm btn-default" id="bt_lampesoirmatinbePause" style="margin-left:8px;"><i class="fas fa-pause"></i> {{Suspendre}}</a>
+								</div>
+							</div>
+							<div class="form-group">
+								<label class="col-sm-4 control-label">&nbsp;</label>
+								<div class="col-sm-8">
+									<span class="help-block" style="margin:0;">{{Suspendre arrête les deux moments sans désactiver le groupe : les boutons continuent de fonctionner, le groupe reste sur le tableau de bord, et les commandes « Suspendre » et « Reprendre » se pilotent en scénario — un mode vacances ou une absence.}}</span>
 								</div>
 							</div>
 						</fieldset>

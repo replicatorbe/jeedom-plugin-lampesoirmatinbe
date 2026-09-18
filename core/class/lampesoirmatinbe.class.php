@@ -233,9 +233,24 @@ class lampesoirmatinbe extends eqLogic {
             array('logicalId' => 'off', 'name' => __('Éteindre', __FILE__),
                   'type' => 'action', 'subType' => 'other', 'generic' => 'LIGHT_OFF',
                   'visible' => 1, 'icon' => 'far fa-lightbulb'),
+            array('logicalId' => 'toggle', 'name' => __('Basculer', __FILE__),
+                  'type' => 'action', 'subType' => 'other', 'generic' => 'LIGHT_TOGGLE',
+                  'visible' => 0, 'icon' => ''),
             array('logicalId' => 'state', 'name' => __('État', __FILE__),
                   'type' => 'info', 'subType' => 'binary', 'generic' => 'LIGHT_STATE',
                   'visible' => 0, 'historized' => 1, 'icon' => ''),
+            array('logicalId' => 'last', 'name' => __('Dernier changement', __FILE__),
+                  'type' => 'info', 'subType' => 'string', 'generic' => '',
+                  'visible' => 0, 'icon' => ''),
+            array('logicalId' => 'active', 'name' => __('Programmation active', __FILE__),
+                  'type' => 'info', 'subType' => 'binary', 'generic' => '',
+                  'visible' => 0, 'historized' => 1, 'icon' => ''),
+            array('logicalId' => 'pause', 'name' => __('Suspendre', __FILE__),
+                  'type' => 'action', 'subType' => 'other', 'generic' => '',
+                  'visible' => 0, 'icon' => ''),
+            array('logicalId' => 'resume', 'name' => __('Reprendre', __FILE__),
+                  'type' => 'action', 'subType' => 'other', 'generic' => '',
+                  'visible' => 0, 'icon' => ''),
             array('logicalId' => 'nextEvening', 'name' => __('Prochain soir', __FILE__),
                   'type' => 'info', 'subType' => 'string', 'generic' => '',
                   'visible' => 0, 'icon' => ''),
@@ -289,6 +304,42 @@ class lampesoirmatinbe extends eqLogic {
         }
     }
 
+    /* ============================================================== SUSPENSION */
+
+    /*
+     * Suspendre plutôt que désactiver.
+     *
+     * Partir quinze jours, ou simplement ne pas vouloir de lumière ce soir,
+     * n'a rien à voir avec désactiver l'équipement : celui-ci sort alors du
+     * tableau de bord, ses boutons ne répondent plus et ses commandes
+     * disparaissent des scénarios. Un groupe suspendu, lui, reste entier — on
+     * peut toujours l'allumer à la main — mais ses deux moments se taisent.
+     *
+     * L'état est enregistré en base et non en cache : un cache vidé rendrait la
+     * programmation à la nuit suivante, et les lampes s'allumeraient dans une
+     * maison vide sans que personne comprenne pourquoi.
+     */
+    public function isPaused() {
+        return ($this->getConfiguration('paused', 0) == 1);
+    }
+
+    public function pauseSchedule($_paused) {
+        $paused = $_paused ? 1 : 0;
+        if ($this->isPaused() == ($paused == 1)) {
+            /* Rien à faire : réenregistrer pour rien ferait repasser toute la
+             * configuration dans preSave et écrirait un événement de plus. */
+            return $this->isPaused();
+        }
+        $this->setConfiguration('paused', $paused);
+        $this->setConfiguration('paused_since', ($paused == 1) ? date('Y-m-d H:i:s') : '');
+        $this->save();
+
+        log::add(__CLASS__, 'info', $this->getHumanName() . ' : '
+               . ($paused == 1 ? __('programmation suspendue', __FILE__) : __('programmation reprise', __FILE__)));
+        $this->refreshInfo();
+        return ($paused == 1);
+    }
+
     /* ============================================================ PROGRAMMATION */
 
     /* Le réglage normalisé d'un moment. */
@@ -335,8 +386,15 @@ class lampesoirmatinbe extends eqLogic {
      */
     public function runSchedule($_now = null) {
         $now = ($_now === null) ? time() : $_now;
-        foreach (self::SLOTS as $key) {
-            $this->runSlot($key, $now);
+        /*
+         * Un groupe suspendu ne joue rien, mais continue d'annoncer ce qu'il
+         * fera à la reprise : c'est ce qui permet de vérifier d'un coup d'oeil
+         * qu'on a bien suspendu le bon groupe, et que rien ne partira ce soir.
+         */
+        if (!$this->isPaused()) {
+            foreach (self::SLOTS as $key) {
+                $this->runSlot($key, $now);
+            }
         }
         $this->refreshInfo($now);
     }
@@ -373,7 +431,7 @@ class lampesoirmatinbe extends eqLogic {
                . ' ' . __('prévu à', __FILE__) . ' ' . date('H:i', $due['timestamp'])
                . ' (' . self::humanSlot($slot) . ')');
 
-        $this->applyAction($slot['action']);
+        $this->applyAction($slot['action'], true, 'schedule');
     }
 
     /*
@@ -385,7 +443,7 @@ class lampesoirmatinbe extends eqLogic {
      * qu'un groupe devenu muet est invisible autrement — personne ne lit le
      * journal d'un plugin qui a toujours marché.
      */
-    public function applyAction($_action, $_report = true) {
+    public function applyAction($_action, $_report = true, $_source = 'manual') {
         $action = ($_action == 'off') ? 'off' : 'on';
         $lamps  = $this->getConfiguration('lamps');
         $sent   = 0;
@@ -412,6 +470,16 @@ class lampesoirmatinbe extends eqLogic {
          * et son historique raconte ce que le plugin a demandé. */
         if ($sent > 0) {
             $this->checkAndUpdateCmd('state', ($action == 'on') ? 1 : 0);
+            /*
+             * « Est-ce que ça a marché hier soir ? » est la première question
+             * qu'on se pose, et le journal est le dernier endroit où l'on pense
+             * à aller. Une commande la répond seule, sur le tableau de bord.
+             */
+            $this->checkAndUpdateCmd('last',
+                (($action == 'on') ? __('Allumé', __FILE__) : __('Éteint', __FILE__))
+                . ' ' . self::humanDate(time())
+                . ' ' . self::sourceLabel($_source)
+                . (count($errors) > 0 ? ' — ' . count($errors) . ' ' . __('en échec', __FILE__) : ''));
         }
 
         if ($_report) {
@@ -491,6 +559,17 @@ class lampesoirmatinbe extends eqLogic {
         return null;
     }
 
+    /* D'où vient l'ordre : ce qui distingue un allumage programmé d'un bouton
+     * pressé à la main, et qui répond à « pourquoi mes lampes se sont allumées
+     * à 3 h du matin ? ». */
+    public static function sourceLabel($_source) {
+        switch ($_source) {
+            case 'schedule': return __('(programmation)', __FILE__);
+            case 'test':     return __('(essai)', __FILE__);
+        }
+        return __('(commande)', __FILE__);
+    }
+
     /* ============================================================== AFFICHAGE */
 
     /*
@@ -508,6 +587,8 @@ class lampesoirmatinbe extends eqLogic {
         $this->checkAndUpdateCmd('sunrise', ($sun['sunrise'] === null) ? '--:--' : date('H:i', $sun['sunrise']));
         $this->checkAndUpdateCmd('sunset', ($sun['sunset'] === null) ? '--:--' : date('H:i', $sun['sunset']));
 
+        $this->checkAndUpdateCmd('active', $this->isPaused() ? 0 : 1);
+
         $best = null;
         foreach (self::SLOTS as $key) {
             $next = $this->nextOccurrence($key, $now);
@@ -518,6 +599,14 @@ class lampesoirmatinbe extends eqLogic {
             }
         }
 
+        /* Un groupe suspendu le dit à la place de son prochain rendez-vous :
+         * afficher « Allumage ce soir 19:36 » pour un groupe qui ne s'allumera
+         * pas serait un mensonge, et c'est justement la tuile qu'on regarde
+         * avant de partir. */
+        if ($this->isPaused()) {
+            $this->checkAndUpdateCmd('next', __('Suspendu', __FILE__));
+            return $best;
+        }
         if ($best === null) {
             $this->checkAndUpdateCmd('next', __('Aucun', __FILE__));
             return null;
@@ -634,6 +723,51 @@ class lampesoirmatinbe extends eqLogic {
         );
     }
 
+    /*
+     * Ce qu'une carte de la page d'accueil montre : combien de lampes, et ce
+     * qui va se passer.
+     *
+     * Le prochain rendez-vous est recalculé plutôt que lu dans la commande :
+     * c'est un calcul pur, de l'ordre de la fraction de milliseconde, et la
+     * commande peut dater si le cron du coeur a pris du retard — or c'est
+     * précisément quand quelque chose ne tourne pas rond qu'on regarde cette
+     * page.
+     *
+     * Les lampes sont comptées dans la configuration, sans résoudre chaque
+     * équipement : une page de dix groupes n'a pas à faire cinquante requêtes
+     * pour afficher un nombre.
+     */
+    public function cardSummary($_now = null) {
+        $now = ($_now === null) ? time() : $_now;
+        $lamps = $this->getConfiguration('lamps');
+        $summary = array(
+            'lamps'  => is_array($lamps) ? count($lamps) : 0,
+            'paused' => $this->isPaused(),
+            'text'   => '',
+        );
+
+        if ($summary['paused']) {
+            $summary['text'] = __('Programmation suspendue', __FILE__);
+            return $summary;
+        }
+
+        $best = null;
+        foreach (self::SLOTS as $key) {
+            $next = $this->nextOccurrence($key, $now);
+            if ($next !== null && ($best === null || $next < $best['timestamp'])) {
+                $best = array('timestamp' => $next, 'key' => $key);
+            }
+        }
+        if ($best === null) {
+            $summary['text'] = __('Aucun moment programmé', __FILE__);
+            return $summary;
+        }
+        $slot = $this->slotConfig($best['key']);
+        $summary['text'] = (($slot['action'] == 'on') ? __('Allumage', __FILE__) : __('Extinction', __FILE__))
+                         . ' ' . self::humanDate($best['timestamp'], $now);
+        return $summary;
+    }
+
     /* ================================================================= SANTÉ */
 
     /*
@@ -645,8 +779,12 @@ class lampesoirmatinbe extends eqLogic {
         $position = self::hasPosition();
         $groups = self::byType(__CLASS__, true);
         $lamps = 0;
+        $paused = 0;
         foreach ($groups as $eqLogic) {
             $lamps += count($eqLogic->lampList());
+            if ($eqLogic->isPaused()) {
+                $paused++;
+            }
         }
         return array(
             array(
@@ -660,6 +798,14 @@ class lampesoirmatinbe extends eqLogic {
                 'result'  => count($groups),
                 'advice'  => '',
                 'state'   => true,
+            ),
+            array(
+                /* Un groupe suspendu et oublié est la panne la plus discrète du
+                 * plugin : tout fonctionne, et rien ne s'allume. */
+                'test'    => __('Groupes suspendus', __FILE__),
+                'result'  => $paused,
+                'advice'  => ($paused == 0) ? '' : __('Leur programmation ne joue plus tant qu\'elle n\'est pas reprise.', __FILE__),
+                'state'   => ($paused == 0),
             ),
             array(
                 'test'    => __('Lampes programmées', __FILE__),
@@ -685,6 +831,24 @@ class lampesoirmatinbeCmd extends cmd {
                 return;
             case 'off':
                 $eqLogic->applyAction('off');
+                return;
+            case 'toggle':
+                /*
+                 * L'inverse du dernier ordre connu, et non l'inverse de l'état
+                 * réel des lampes : le plugin ne surveille pas ce qu'un
+                 * interrupteur mural fait de son côté. C'est la même convention
+                 * que la commande « État », et elle est dite dans la
+                 * documentation.
+                 */
+                $state = $eqLogic->getCmd(null, 'state');
+                $on = (is_object($state) && $state->execCmd() == 1);
+                $eqLogic->applyAction($on ? 'off' : 'on');
+                return;
+            case 'pause':
+                $eqLogic->pauseSchedule(true);
+                return;
+            case 'resume':
+                $eqLogic->pauseSchedule(false);
                 return;
         }
     }

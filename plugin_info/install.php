@@ -36,6 +36,22 @@ function lampesoirmatinbe_install() {
 
 function lampesoirmatinbe_update() {
     lampesoirmatinbe_install();
+
+    /*
+     * Les groupes déjà créés n'ont pas les commandes ajoutées depuis. Sans ce
+     * passage, « Basculer », « Suspendre » ou « Dernier changement »
+     * n'existeraient que sur les groupes créés après la mise à jour, et
+     * l'utilisateur croirait la nouveauté absente. createCommands() ne touche ni
+     * au nom ni à la visibilité de ce qui existe déjà : ce que l'utilisateur a
+     * réglé lui reste.
+     */
+    foreach (eqLogic::byType('lampesoirmatinbe') as $eqLogic) {
+        try {
+            $eqLogic->createCommands();
+        } catch (Throwable $e) {
+            log::add('lampesoirmatinbe', 'error', $eqLogic->getHumanName() . ' : ' . $e->getMessage());
+        }
+    }
 }
 
 function lampesoirmatinbe_remove() {

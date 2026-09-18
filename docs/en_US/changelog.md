@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2
+
+- Pause a group without disabling it: both moments fall silent, everything else
+  keeps working. "Pause" and "Resume" commands for a scenario-driven holiday
+  mode, and a "Schedule active" information command.
+- The home page announces on each card what the group will do, and marks paused
+  groups.
+- New "Last change" command: what the plugin did, when, and on what grounds —
+  schedule, command or test.
+- New "Toggle" action command, for a wall switch.
+- The Health page counts paused groups.
+
 ## 1.1
 
 - Fix: the lamp selector spun forever. An `.htaccess` file denied access to the

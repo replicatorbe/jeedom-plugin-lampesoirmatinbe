@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2
+
+- Suspendre un groupe sans le désactiver : ses deux moments se taisent, le reste
+  fonctionne. Commandes « Suspendre » et « Reprendre » pour un mode vacances
+  piloté en scénario, et commande d'information « Programmation active ».
+- La page d'accueil annonce sur chaque carte ce que le groupe fera, et marque
+  les groupes suspendus.
+- Nouvelle commande « Dernier changement » : ce que le plugin a fait, quand, et
+  à quel titre — programmation, commande ou essai.
+- Nouvelle commande d'action « Basculer », pour un bouton mural.
+- La page Santé compte les groupes suspendus.
+
 ## 1.1
 
 - Correction : le sélecteur de lampes tournait sans fin. Un fichier `.htaccess`

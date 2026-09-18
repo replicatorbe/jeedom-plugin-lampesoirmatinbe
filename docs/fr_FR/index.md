@@ -99,9 +99,13 @@ aucun jour coché, ou position manquante.
 
 | Commande | Type | Rôle |
 |---|---|---|
-| **Prochain changement** | info | « Allumage aujourd'hui 20:42 ». Visible sur le tableau de bord. |
+| **Prochain changement** | info | « Allumage aujourd'hui 20:42 », ou « Suspendu ». Visible sur le tableau de bord. |
 | **Allumer** / **Éteindre** | action | Agit sur tout le groupe, à la main ou depuis un scénario. |
+| **Basculer** | action | L'inverse du dernier ordre connu. Pour un bouton mural qui ne sait faire qu'une chose. |
 | **État** | info binaire | Le dernier ordre envoyé par le plugin. Historisé. |
+| **Dernier changement** | info | « Allumé aujourd'hui 19:36 (programmation) ». Répond seule à « est-ce que ça a marché hier soir ? ». |
+| **Programmation active** | info binaire | 0 quand le groupe est suspendu. Historisé. |
+| **Suspendre** / **Reprendre** | action | Le mode vacances, pilotable en scénario. |
 | **Prochain soir** / **Prochain matin** | info | Les deux rendez-vous séparément. |
 | **Lever du soleil** / **Coucher du soleil** | info | Les heures du jour, utiles en scénario. |
 
@@ -110,6 +114,23 @@ masquées, à réafficher si vous en avez l'usage.
 
 **L'« État » est celui du plugin, pas celui de l'ampoule.** Le plugin envoie des
 ordres, il ne surveille pas ce qu'un interrupteur mural fait de son côté.
+
+## Suspendre un groupe
+
+Partir quinze jours, ou simplement ne pas vouloir de lumière ce soir, n'a rien à
+voir avec désactiver l'équipement : celui-ci sortirait du tableau de bord, ses
+boutons ne répondraient plus et ses commandes disparaîtraient des scénarios.
+
+**Suspendre** arrête les deux moments, et rien d'autre. Le groupe reste entier,
+on peut toujours l'allumer à la main, et sa tuile affiche « Suspendu » au lieu
+d'annoncer un rendez-vous qu'elle n'honorerait pas. Le bouton est dans l'onglet
+*Lampes*, et les commandes **Suspendre** et **Reprendre** se pilotent depuis un
+scénario — c'est ainsi qu'on branche un mode vacances ou un détecteur d'absence.
+
+La suspension est enregistrée en base, pas en cache : elle survit à un
+redémarrage, à une mise à jour et à un vidage du cache. Un groupe suspendu et
+oublié étant la panne la plus discrète du plugin — tout fonctionne, et rien ne
+s'allume — la page Santé les compte, et la page d'accueil les marque en orange.
 
 ## Le rattrapage
 

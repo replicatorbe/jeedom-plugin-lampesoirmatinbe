@@ -212,6 +212,30 @@ function lampesoirmatinbeRenderLamps() {
   container.appendChild(table)
 }
 
+/* L'état de la programmation : l'étiquette, le bouton qui l'inverse, et le
+   bandeau au-dessus des lampes. Un groupe suspendu doit se voir sans qu'on ait
+   à chercher — c'est la panne la plus discrète du plugin : tout fonctionne, et
+   rien ne s'allume. */
+function lampesoirmatinbeShowPaused(_paused, _since) {
+  var label = document.getElementById('span_lampesoirmatinbePaused')
+  var button = document.getElementById('bt_lampesoirmatinbePause')
+  if (label === null || button === null) { return }
+
+  if (_paused) {
+    label.className = 'label label-warning'
+    label.textContent = (isset(_since) && _since !== '')
+      ? '{{Suspendue depuis le}} ' + _since
+      : '{{Suspendue}}'
+    button.innerHTML = '<i class="fas fa-play"></i> {{Reprendre}}'
+    button.setAttribute('data-state', '0')
+  } else {
+    label.className = 'label label-success'
+    label.textContent = '{{Active}}'
+    button.innerHTML = '<i class="fas fa-pause"></i> {{Suspendre}}'
+    button.setAttribute('data-state', '1')
+  }
+}
+
 /* Ce que le serveur sait du groupe : ses lampes telles qu'elles s'appellent
    aujourd'hui, et les prochaines occurrences de chaque moment. */
 function lampesoirmatinbeLoadGroup(_id) {
@@ -237,6 +261,7 @@ function lampesoirmatinbeLoadGroup(_id) {
     lampesoirmatinbeRenderLamps()
     lampesoirmatinbeShowPreview('evening', result.evening)
     lampesoirmatinbeShowPreview('morning', result.morning)
+    lampesoirmatinbeShowPaused(result.paused == 1, result.pausedSince)
   }, { silent: true })
 }
 
@@ -801,6 +826,9 @@ function printEqLogic(_eqLogic) {
     lampesoirmatinbeApplySlot('morning', isset(configuration.morning) ? configuration.morning : null)
     lampesoirmatinbeShowPreview('evening', null)
     lampesoirmatinbeShowPreview('morning', null)
+    /* Le coeur ne réinitialise que les .eqLogicAttr : sans cela, l'étiquette
+       garderait l'état du groupe précédemment ouvert. */
+    lampesoirmatinbeShowPaused(false, '')
   } finally {
     lampesoirmatinbeRendering = false
   }
@@ -952,6 +980,17 @@ lampesoirmatinbeContainer.addEventListener('click', function (event) {
     lampesoirmatinbeAjax('switchLamp', { eq: cell.getAttribute('data-eq'), order: order }, function () {
       var openId = lampesoirmatinbeCurrentId(true)
       if (openId !== null) { lampesoirmatinbeLoadGroup(openId) }
+    }, { button: target })
+    return
+  }
+
+  if (target = event.target.closest('#bt_lampesoirmatinbePause')) {
+    var pauseId = lampesoirmatinbeCurrentId()
+    if (pauseId === null) { return }
+    lampesoirmatinbeAjax('pause', { id: pauseId, state: target.getAttribute('data-state') }, function (result) {
+      lampesoirmatinbeShowPaused(result.paused == 1, '')
+      lampesoirmatinbeLoadGroup(pauseId)
+      jeedomUtils.showAlert({ message: result.summary, level: (result.paused == 1) ? 'warning' : 'success' })
     }, { button: target })
     return
   }

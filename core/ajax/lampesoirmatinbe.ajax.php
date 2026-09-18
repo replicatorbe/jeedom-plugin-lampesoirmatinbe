@@ -122,6 +122,8 @@ try {
             'lamps'       => $eqLogic->lampList(),
             'evening'     => $eqLogic->previewSlot('evening'),
             'morning'     => $eqLogic->previewSlot('morning'),
+            'paused'      => $eqLogic->isPaused() ? 1 : 0,
+            'pausedSince' => $eqLogic->getConfiguration('paused_since', ''),
             'hasPosition' => lampesoirmatinbe::hasPosition() ? 1 : 0,
         ));
     }
@@ -145,11 +147,23 @@ try {
         ajax::success($eqLogic->previewSlot($key, $slot));
     }
 
+    /* Suspend ou reprend la programmation du groupe. */
+    if (init('action') == 'pause') {
+        $eqLogic = $getGroup(init('id'));
+        $paused = $eqLogic->pauseSchedule(init('state') == 1);
+        ajax::success(array(
+            'paused'  => $paused ? 1 : 0,
+            'summary' => $paused
+                ? __('Programmation suspendue : les lampes ne bougeront plus tant qu\'elle n\'est pas reprise.', __FILE__)
+                : __('Programmation reprise.', __FILE__),
+        ));
+    }
+
     /* Allume ou éteint tout le groupe, tel que le fera la programmation. */
     if (init('action') == 'testGroup') {
         unautorizedInDemo();
         $eqLogic = $getGroup(init('id'));
-        $result = $eqLogic->applyAction(init('order'), false);
+        $result = $eqLogic->applyAction(init('order'), false, 'test');
         if (count($result['errors']) > 0) {
             throw new Exception(implode(' ; ', $result['errors']));
         }
