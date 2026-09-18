@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3
+
+- The "State" command now follows the lamps themselves rather than the last
+  order sent: switching off at the wall shows on the tile within the minute, and
+  a lost order no longer goes unnoticed. Groups whose lamps publish no state keep
+  the previous behaviour, for want of anything better.
+
 ## 1.2
 
 - Pause a group without disabling it: both moments fall silent, everything else

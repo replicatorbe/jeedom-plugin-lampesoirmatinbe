@@ -102,7 +102,7 @@ aucun jour coché, ou position manquante.
 | **Prochain changement** | info | « Allumage aujourd'hui 20:42 », ou « Suspendu ». Visible sur le tableau de bord. |
 | **Allumer** / **Éteindre** | action | Agit sur tout le groupe, à la main ou depuis un scénario. |
 | **Basculer** | action | L'inverse du dernier ordre connu. Pour un bouton mural qui ne sait faire qu'une chose. |
-| **État** | info binaire | Le dernier ordre envoyé par le plugin. Historisé. |
+| **État** | info binaire | L'état réel du groupe : allumé dès qu'une de ses lampes l'est. Historisé. |
 | **Dernier changement** | info | « Allumé aujourd'hui 19:36 (programmation) ». Répond seule à « est-ce que ça a marché hier soir ? ». |
 | **Programmation active** | info binaire | 0 quand le groupe est suspendu. Historisé. |
 | **Suspendre** / **Reprendre** | action | Le mode vacances, pilotable en scénario. |
@@ -112,8 +112,15 @@ aucun jour coché, ou position manquante.
 Seules les trois premières sont visibles à la création ; les autres sont créées
 masquées, à réafficher si vous en avez l'usage.
 
-**L'« État » est celui du plugin, pas celui de l'ampoule.** Le plugin envoie des
-ordres, il ne surveille pas ce qu'un interrupteur mural fait de son côté.
+**L'« État » est celui des lampes.** Il vaut 1 dès qu'une lampe du groupe est
+allumée, et suit ce qui se passe réellement — y compris quand quelqu'un appuie
+sur l'interrupteur mural, dans la minute qui suit. La valeur est lue dans ce que
+les plugins de vos lampes publient déjà ; le plugin n'interroge rien lui-même.
+
+Les lampes qui ne publient pas leur état — beaucoup de modules 433 MHz, par
+exemple — ne peuvent rien dire. Si aucune lampe du groupe n'en publie, l'« État »
+garde le dernier ordre envoyé par le plugin, faute de mieux. Ce que le plugin a
+demandé, lui, est toujours dans « Dernier changement ».
 
 ## Suspendre un groupe
 

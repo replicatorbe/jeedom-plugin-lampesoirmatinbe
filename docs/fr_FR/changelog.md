@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3
+
+- La commande « État » suit désormais les lampes elles-mêmes, et non le dernier
+  ordre envoyé : éteindre au mur se voit sur la tuile dans la minute, et un
+  ordre perdu ne passe plus inaperçu. Les groupes dont aucune lampe ne publie
+  son état gardent l'ancien comportement, faute de mieux.
+
 ## 1.2
 
 - Suspendre un groupe sans le désactiver : ses deux moments se taisent, le reste

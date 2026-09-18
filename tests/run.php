@@ -328,6 +328,22 @@ $piege = array(
 );
 verifie('le type générique prime sur le nom', lampesoirmatinbeLamps::classify('Lampe', $piege)['on'], 61);
 
+/* ----------------------------------------------------------------- 10 ---
+ * L'état d'un groupe à partir de celui de ses lampes.
+ *
+ * Le cas qui compte est le dernier : un groupe dont aucune lampe ne publie son
+ * état ne doit pas être déclaré éteint, sinon la tuile afficherait « éteint »
+ * en permanence pour tous les modules 433 MHz, et le dernier ordre du plugin —
+ * la seule chose que l'on sache — serait perdu. */
+echo "\nÉtat d'un groupe\n";
+verifie('une allumée suffit', lampesoirmatinbeLamps::aggregateState(array(0, 0, 1)), 1);
+verifie('toutes éteintes', lampesoirmatinbeLamps::aggregateState(array(0, 0, 0)), 0);
+verifie('une seule lampe allumée', lampesoirmatinbeLamps::aggregateState(array(1)), 1);
+verifie('les inconnues ne comptent pas', lampesoirmatinbeLamps::aggregateState(array(null, 0)), 0);
+verifie('une connue allumée parmi des inconnues', lampesoirmatinbeLamps::aggregateState(array(null, 1, null)), 1);
+verifie('aucune ne se prononce : on ne sait pas', lampesoirmatinbeLamps::aggregateState(array(null, null)), null);
+verifie('groupe vide : on ne sait pas', lampesoirmatinbeLamps::aggregateState(array()), null);
+
 /* ---------------------------------------------------------------- BILAN --- */
 echo "\n";
 if ($ko == 0) {

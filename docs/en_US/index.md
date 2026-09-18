@@ -99,7 +99,7 @@ position.
 | **Next change** | info | "Switch on today 20:42", or "Paused". Visible on the dashboard. |
 | **Switch on** / **Switch off** | action | Acts on the whole group, by hand or from a scenario. |
 | **Toggle** | action | The opposite of the last known order. For a wall switch that can only do one thing. |
-| **State** | binary info | The last order sent by the plugin. Logged. |
+| **State** | binary info | The real state of the group: on as soon as one of its lamps is. Logged. |
 | **Last change** | info | "Switched on today 19:36 (schedule)". Answers "did it work last night?" on its own. |
 | **Schedule active** | binary info | 0 when the group is paused. Logged. |
 | **Pause** / **Resume** | action | Holiday mode, drivable from a scenario. |
@@ -109,8 +109,15 @@ position.
 Only the first three are visible on creation; the others are created hidden, to
 be shown again if you have a use for them.
 
-**"State" is the plugin's state, not the bulb's.** The plugin sends orders, it
-does not watch what a wall switch does on its side.
+**"State" is the lamps' state.** It is 1 as soon as one lamp of the group is on,
+and follows what really happens — including when someone presses the wall
+switch, within the minute. The value is read from what your lamp plugins already
+publish; the plugin queries nothing itself.
+
+Lamps that do not publish their state — many 433 MHz modules, for instance — can
+say nothing. If no lamp of the group publishes one, "State" keeps the last order
+sent by the plugin, for want of anything better. What the plugin asked for is
+always in "Last change".
 
 ## Pausing a group
 

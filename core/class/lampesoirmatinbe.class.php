@@ -391,18 +391,21 @@ class lampesoirmatinbe extends eqLogic {
          * fera à la reprise : c'est ce qui permet de vérifier d'un coup d'oeil
          * qu'on a bien suspendu le bon groupe, et que rien ne partira ce soir.
          */
+        $fired = false;
         if (!$this->isPaused()) {
             foreach (self::SLOTS as $key) {
-                $this->runSlot($key, $now);
+                $fired = $this->runSlot($key, $now) || $fired;
             }
         }
-        $this->refreshInfo($now);
+        $this->refreshInfo($now, !$fired);
     }
 
+    /* Rend vrai si un ordre vient d'être envoyé : l'appelant saura qu'il ne faut
+     * pas relire l'état des lampes dans la foulée. */
     private function runSlot($_key, $_now) {
         $slot = $this->slotConfig($_key);
         if ($slot['enable'] != 1) {
-            return;
+            return false;
         }
         $position = self::position();
         $due = lampesoirmatinbeSun::dueOccurrence(
@@ -410,14 +413,14 @@ class lampesoirmatinbe extends eqLogic {
             $this->seed($_key), self::graceSeconds()
         );
         if ($due === null) {
-            return;
+            return false;
         }
 
         /* Déjà joué aujourd'hui : le cron repasse toutes les minutes pendant
          * tout le délai de grâce. */
         $doneKey = $this->doneKey($_key);
         if (cache::byKey($doneKey)->getValue('') === $due['day']) {
-            return;
+            return false;
         }
         /*
          * Marqué avant d'agir : si un ordre part et qu'une lampe lève ensuite,
@@ -432,6 +435,7 @@ class lampesoirmatinbe extends eqLogic {
                . ' (' . self::humanSlot($slot) . ')');
 
         $this->applyAction($slot['action'], true, 'schedule');
+        return true;
     }
 
     /*
@@ -570,6 +574,27 @@ class lampesoirmatinbe extends eqLogic {
         return __('(commande)', __FILE__);
     }
 
+    /*
+     * L'état du groupe tel que les lampes le disent, ou null si aucune ne le
+     * dit.
+     *
+     * Aucun appel réseau : la valeur d'une commande d'information est lue dans
+     * le cache du coeur, exactement comme le fait un widget de tableau de bord.
+     * Ce sont les plugins des lampes qui l'y déposent quand elles changent, y
+     * compris lorsqu'on appuie sur l'interrupteur mural — c'est tout l'intérêt.
+     */
+    public function realState() {
+        $lamps = $this->getConfiguration('lamps');
+        if (!is_array($lamps) || count($lamps) == 0) {
+            return null;
+        }
+        $values = array();
+        foreach ($lamps as $lamp) {
+            $values[] = lampesoirmatinbeLamps::readState(isset($lamp['state']) ? $lamp['state'] : null);
+        }
+        return lampesoirmatinbeLamps::aggregateState($values);
+    }
+
     /* ============================================================== AFFICHAGE */
 
     /*
@@ -579,8 +604,27 @@ class lampesoirmatinbe extends eqLogic {
      * checkAndUpdateCmd n'écrit que si la valeur change : appelé chaque minute,
      * il ne produit ni événement ni ligne d'historique tant que rien ne bouge.
      */
-    public function refreshInfo($_now = null) {
+    public function refreshInfo($_now = null, $_readState = true) {
         $now = ($_now === null) ? time() : $_now;
+
+        /*
+         * L'état des lampes elles-mêmes l'emporte sur le souvenir du dernier
+         * ordre : quelqu'un a pu éteindre au mur, une ampoule a pu ne pas
+         * recevoir l'ordre, et la tuile mentirait jusqu'au lendemain. Quand
+         * aucune lampe ne publie son état, le dernier ordre reste la seule
+         * chose que l'on sache, et on n'y touche pas.
+         *
+         * Pas de lecture dans la seconde qui suit un ordre : la lampe n'a pas
+         * encore eu le temps de dire qu'elle a obéi, et on écraserait l'état
+         * que l'ordre vient de poser par celui d'avant.
+         */
+        if ($_readState) {
+            $real = $this->realState();
+            if ($real !== null) {
+                $this->checkAndUpdateCmd('state', $real);
+            }
+        }
+
         $position = self::position();
         $sun = lampesoirmatinbeSun::sun($now, $position['latitude'], $position['longitude']);
 

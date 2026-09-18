@@ -381,6 +381,35 @@ class lampesoirmatinbeLamps {
         return array_values($groups);
     }
 
+    /*
+     * L'état d'un groupe, à partir de celui de ses lampes.
+     *
+     * Allumé dès qu'une seule l'est : c'est ce que dit une pièce où il reste de
+     * la lumière, et c'est la question qu'on pose à un groupe — « reste-t-il
+     * quelque chose d'allumé ? » — bien plus souvent que « sont-elles toutes
+     * allumées ? ».
+     *
+     * Rend null quand aucune lampe ne publie son état : il faut alors pouvoir
+     * dire qu'on ne sait pas, plutôt que de répondre « éteint » pour des lampes
+     * dont on ignore tout. Beaucoup de modules commandés en 433 MHz ne
+     * renvoient rien, et leur groupe doit garder l'état du dernier ordre.
+     *
+     * Sans Jeedom : c'est la règle d'agrégation, et elle s'éprouve hors ligne.
+     */
+    public static function aggregateState($_values) {
+        $known = false;
+        foreach ($_values as $value) {
+            if ($value === null) {
+                continue;
+            }
+            $known = true;
+            if ($value == 1) {
+                return 1;
+            }
+        }
+        return $known ? 0 : null;
+    }
+
     /* L'état connu d'une lampe, pour la pastille du sélecteur : 1 allumée,
      * 0 éteinte, null inconnu. Le voir en direct est ce qui permet de
      * reconnaître une lampe sans quitter la page. */
