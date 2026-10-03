@@ -35,10 +35,39 @@ require_once __DIR__ . '/lampesoirmatinbeLamps.class.php';
  */
 class lampesoirmatinbe extends eqLogic {
 
-    /* Les deux moments, dans l'ordre où ils se lisent dans la journée. Les noms
-     * sont ceux de la configuration, l'interface les appelle « Le soir » et
-     * « Le matin ». */
-    const SLOTS = array('evening', 'morning');
+    /* Les quatre moments, dans l'ordre où ils se lisent dans la journée. Les deux
+     * centraux — « La nuit » et « L'aube » — sont désactivés par défaut : qui
+     * ne les règle pas n'a affaire qu'au soir et au matin, exactement comme
+     * avant.
+     *
+     * L'ordre de la liste importe : refreshInfo cherche le prochain rendez-vous
+     * en comparant les horodatages, mais une tuile qui dirait « Nuit 23:30 »
+     * avant « Aube 06:00 » dans la journée du lendemain reste lisible parce que
+     * les slots sont parcourus dans l'ordre naturel. */
+    const SLOTS = array('evening', 'night', 'preDawn', 'morning');
+
+    /*
+     * Ce qu'un slot est, en une table : son action par défaut, l'heure fixe
+     * suggérée à la création, le libellé affiché, et l'identifiant de la
+     * commande d'information « prochain » qui lui correspond.
+     *
+     * Centraliser évite de disperser quatre ternaires dans tout le fichier et de
+     * les voir diverger à la première évolution.
+     */
+    public static function slotMeta($_key) {
+        $meta = array(
+            'evening' => array('action' => 'on',  'time' => '19:00', 'next' => 'nextEvening'),
+            'night'   => array('action' => 'off', 'time' => '23:30', 'next' => 'nextNight'),
+            'preDawn' => array('action' => 'on',  'time' => '06:00', 'next' => 'nextPreDawn'),
+            'morning' => array('action' => 'off', 'time' => '07:00', 'next' => 'nextMorning'),
+        );
+        if (!isset($meta[$_key])) {
+            /* Un slot inconnu ne doit pas faire planter la page : on retombe sur
+             * le soir, qui est la valeur la plus inoffensive. */
+            return $meta['evening'];
+        }
+        return $meta[$_key];
+    }
 
     /* Retard au-delà duquel un ordre manqué n'est plus joué. Une box redémarrée
      * à 3 h du matin ne doit pas rattraper l'allumage de 20 h. Réglable dans la
@@ -135,9 +164,9 @@ class lampesoirmatinbe extends eqLogic {
          * un entier et non « 30 » entre guillemets.
          */
         foreach (self::SLOTS as $key) {
+            $meta = self::slotMeta($key);
             $this->setConfiguration($key, lampesoirmatinbeSun::cleanSlot(
-                $this->getConfiguration($key),
-                ($key == 'evening') ? 'on' : 'off'
+                $this->getConfiguration($key), $meta['action'], $meta['time']
             ));
         }
         $this->setConfiguration('lamps', self::cleanLamps($this->getConfiguration('lamps')));
@@ -254,6 +283,12 @@ class lampesoirmatinbe extends eqLogic {
             array('logicalId' => 'nextEvening', 'name' => __('Prochain soir', __FILE__),
                   'type' => 'info', 'subType' => 'string', 'generic' => '',
                   'visible' => 0, 'icon' => ''),
+            array('logicalId' => 'nextNight', 'name' => __('Prochaine nuit', __FILE__),
+                  'type' => 'info', 'subType' => 'string', 'generic' => '',
+                  'visible' => 0, 'icon' => ''),
+            array('logicalId' => 'nextPreDawn', 'name' => __('Prochaine aube', __FILE__),
+                  'type' => 'info', 'subType' => 'string', 'generic' => '',
+                  'visible' => 0, 'icon' => ''),
             array('logicalId' => 'nextMorning', 'name' => __('Prochain matin', __FILE__),
                   'type' => 'info', 'subType' => 'string', 'generic' => '',
                   'visible' => 0, 'icon' => ''),
@@ -344,9 +379,9 @@ class lampesoirmatinbe extends eqLogic {
 
     /* Le réglage normalisé d'un moment. */
     public function slotConfig($_key) {
+        $meta = self::slotMeta($_key);
         return lampesoirmatinbeSun::cleanSlot(
-            $this->getConfiguration($_key),
-            ($_key == 'evening') ? 'on' : 'off'
+            $this->getConfiguration($_key), $meta['action'], $meta['time']
         );
     }
 
@@ -636,8 +671,8 @@ class lampesoirmatinbe extends eqLogic {
         $best = null;
         foreach (self::SLOTS as $key) {
             $next = $this->nextOccurrence($key, $now);
-            $logicalId = ($key == 'evening') ? 'nextEvening' : 'nextMorning';
-            $this->checkAndUpdateCmd($logicalId, ($next === null) ? '' : self::humanDate($next, $now));
+            $meta = self::slotMeta($key);
+            $this->checkAndUpdateCmd($meta['next'], ($next === null) ? '' : self::humanDate($next, $now));
             if ($next !== null && ($best === null || $next < $best['timestamp'])) {
                 $best = array('timestamp' => $next, 'key' => $key);
             }
@@ -679,7 +714,13 @@ class lampesoirmatinbe extends eqLogic {
     }
 
     public static function slotName($_key) {
-        return ($_key == 'evening') ? __('Le soir', __FILE__) : __('Le matin', __FILE__);
+        switch ($_key) {
+            case 'evening': return __('Le soir', __FILE__);
+            case 'night':   return __('La nuit', __FILE__);
+            case 'preDawn': return __('L\'aube', __FILE__);
+            case 'morning': return __('Le matin', __FILE__);
+        }
+        return $_key;
     }
 
     /* Le réglage d'un moment en une phrase, pour le journal et pour l'interface :

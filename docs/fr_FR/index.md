@@ -21,13 +21,18 @@ ne peuvent donc pas diverger.
 ## Créer un groupe
 
 Un **groupe** rassemble les lampes qu'on allume et qu'on éteint ensemble : le
-salon, la façade, les chambres d'enfants. Un groupe a deux moments, le soir et
-le matin, et c'est tout ce qu'il faut régler.
+salon, la façade, les chambres d'enfants. Un groupe a jusqu'à quatre moments —
+*le soir*, *la nuit*, *l'aube*, *le matin* — qu'on règle à la carte : par défaut
+seuls le soir et le matin sont actifs, pour qui veut rallumer et éteindre
+simplement. Les deux moments du milieu, désactivés d'office, se cochent le jour
+où on veut éteindre au milieu de la nuit et rallumer avant le lever.
 
 1. **Plugins → Automatisation → Lampes Soir & Matin → Ajouter un groupe.**
    Donnez-lui le nom de ce qu'il éclaire.
 2. **Choisir les lampes.** Le bouton ouvre le sélecteur.
-3. **Onglet Programmation.** Réglez le soir, réglez le matin.
+3. **Onglet Programmation.** Réglez le soir et le matin ; cochez *la nuit* et
+   *l'aube* si vous voulez une extinction au milieu de la nuit et un
+   ré-allumage avant le lever.
 4. **Sauvegarder.** Il n'y a rien d'autre à faire.
 
 ## Le sélecteur de lampes
@@ -63,11 +68,13 @@ Le bouton **Tout cocher** d'une pièce répond au geste le plus fréquent :
 
 ## Régler un moment
 
-Le soir et le matin se règlent exactement de la même façon.
+Les quatre moments — soir, nuit, aube, matin — se règlent exactement de la même
+façon.
 
-**Faire** — allumer ou éteindre. Le soir allume et le matin éteint par défaut,
-mais rien n'oblige à s'y tenir : un groupe « lampes du matin » allume au lever et
-éteint une heure après.
+**Faire** — allumer ou éteindre. Chaque moment a une intention par défaut (le
+soir et l'aube allument, la nuit et le matin éteignent), mais rien n'oblige à
+s'y tenir : un groupe « lampes du matin » allume au lever et éteint une heure
+après.
 
 **Quand** — trois possibilités :
 
@@ -106,7 +113,7 @@ aucun jour coché, ou position manquante.
 | **Dernier changement** | info | « Allumé aujourd'hui 19:36 (programmation) ». Répond seule à « est-ce que ça a marché hier soir ? ». |
 | **Programmation active** | info binaire | 0 quand le groupe est suspendu. Historisé. |
 | **Suspendre** / **Reprendre** | action | Le mode vacances, pilotable en scénario. |
-| **Prochain soir** / **Prochain matin** | info | Les deux rendez-vous séparément. |
+| **Prochain soir** / **Prochaine nuit** / **Prochaine aube** / **Prochain matin** | info | Les quatre rendez-vous séparément. |
 | **Lever du soleil** / **Coucher du soleil** | info | Les heures du jour, utiles en scénario. |
 
 Seules les trois premières sont visibles à la création ; les autres sont créées

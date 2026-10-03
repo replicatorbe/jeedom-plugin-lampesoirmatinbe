@@ -16,6 +16,12 @@
 
 /* ================================================================== OUTILS */
 
+/* Les quatre moments, dans l'ordre de la journée. Doit rester cohérent avec
+   la constante SLOTS côté PHP : la seule source de vérité est le serveur, mais
+   le navigateur doit itérer dans le même ordre pour que la colonne « soir+nuit »
+   et la colonne « aube+matin » rangent les blocs correctement. */
+var LSM_SLOTS = ['evening', 'night', 'preDawn', 'morning']
+
 /* Les lampes du groupe ouvert. C'est la source de vérité de l'onglet Lampes :
    l'affichage en découle, et saveEqLogic la recopie dans la configuration. */
 var lampesoirmatinbeSelection = []
@@ -259,8 +265,9 @@ function lampesoirmatinbeLoadGroup(_id) {
       }
     }
     lampesoirmatinbeRenderLamps()
-    lampesoirmatinbeShowPreview('evening', result.evening)
-    lampesoirmatinbeShowPreview('morning', result.morning)
+    for (var s = 0; s < LSM_SLOTS.length; s++) {
+      lampesoirmatinbeShowPreview(LSM_SLOTS[s], result[LSM_SLOTS[s]])
+    }
     lampesoirmatinbeShowPaused(result.paused == 1, result.pausedSince)
   }, { silent: true })
 }
@@ -727,16 +734,24 @@ function lampesoirmatinbeApplySlot(_key, _slot) {
   /* Un groupe neuf arrive sans configuration : le formulaire montrerait alors
      une heure vide, « Allumer » pour le matin comme pour le soir, et un aperçu
      qui annonce que rien ne se déclenchera jamais. On pose donc ce que le
-     plugin poserait de toute façon à l'enregistrement — soir allumé, matin
-     éteint, moments activés — pour que l'écran dise la vérité dès la création.
+     plugin poserait de toute façon à l'enregistrement, pour que l'écran dise la
+     vérité dès la création. Soir et matin sont activés — c'est le fonctionnement
+     d'origine ; nuit et aube restent décochés, parce que les pré-cocher
+     imposerait à tout le monde quatre moments quand deux suffisent souvent.
      Rien n'est exécuté tant que le groupe n'a pas de lampe. */
   if (!isset(slot.mode)) {
-    var isEvening = (_key === 'evening')
-    block.querySelector('.eqLogicAttr[data-l3key="enable"]').checked = true
-    block.querySelector('.eqLogicAttr[data-l3key="action"]').value = isEvening ? 'on' : 'off'
-    block.querySelector('.lsmMode').value = isEvening ? 'sunset' : 'sunrise'
-    block.querySelector('.eqLogicAttr[data-l3key="time"]').value = isEvening ? '19:00' : '07:00'
-    slot = { offset: isEvening ? -15 : 30 }
+    var defaults = {
+      evening: { enable: true,  action: 'on',  mode: 'sunset',  time: '19:00', offset: -15 },
+      night:   { enable: false, action: 'off', mode: 'fixed',   time: '23:30', offset: 0   },
+      preDawn: { enable: false, action: 'on',  mode: 'fixed',   time: '06:00', offset: 0   },
+      morning: { enable: true,  action: 'off', mode: 'sunrise', time: '07:00', offset: 30  }
+    }
+    var preset = defaults[_key] || defaults.evening
+    block.querySelector('.eqLogicAttr[data-l3key="enable"]').checked = preset.enable
+    block.querySelector('.eqLogicAttr[data-l3key="action"]').value = preset.action
+    block.querySelector('.lsmMode').value = preset.mode
+    block.querySelector('.eqLogicAttr[data-l3key="time"]').value = preset.time
+    slot = { offset: preset.offset }
   }
 
   var offset = parseInt(slot.offset, 10)
@@ -790,7 +805,7 @@ function lampesoirmatinbeShowPreview(_key, _preview) {
 /* Demande l'aperçu au serveur, en laissant retomber la saisie.
    Le calcul est fait là-bas : c'est le même code qui décidera de l'ordre au
    moment venu, et deux implémentations divergeraient. */
-var lampesoirmatinbePreviewTimer = { evening: null, morning: null }
+var lampesoirmatinbePreviewTimer = { evening: null, night: null, preDawn: null, morning: null }
 function lampesoirmatinbeRefreshPreview(_key) {
   if (lampesoirmatinbePreviewTimer[_key] !== null) {
     clearTimeout(lampesoirmatinbePreviewTimer[_key])
@@ -822,10 +837,11 @@ function printEqLogic(_eqLogic) {
     }
     lampesoirmatinbeRenderLamps()
 
-    lampesoirmatinbeApplySlot('evening', isset(configuration.evening) ? configuration.evening : null)
-    lampesoirmatinbeApplySlot('morning', isset(configuration.morning) ? configuration.morning : null)
-    lampesoirmatinbeShowPreview('evening', null)
-    lampesoirmatinbeShowPreview('morning', null)
+    for (var s = 0; s < LSM_SLOTS.length; s++) {
+      var key = LSM_SLOTS[s]
+      lampesoirmatinbeApplySlot(key, isset(configuration[key]) ? configuration[key] : null)
+      lampesoirmatinbeShowPreview(key, null)
+    }
     /* Le coeur ne réinitialise que les .eqLogicAttr : sans cela, l'étiquette
        garderait l'état du groupe précédemment ouvert. */
     lampesoirmatinbeShowPaused(false, '')
@@ -837,8 +853,9 @@ function printEqLogic(_eqLogic) {
     lampesoirmatinbeLoadGroup(_eqLogic.id)
   } else {
     /* Groupe neuf : l'aperçu se calcule quand même, sur ce que montre l'écran. */
-    lampesoirmatinbeRefreshPreview('evening')
-    lampesoirmatinbeRefreshPreview('morning')
+    for (var p = 0; p < LSM_SLOTS.length; p++) {
+      lampesoirmatinbeRefreshPreview(LSM_SLOTS[p])
+    }
   }
 }
 
@@ -858,10 +875,9 @@ function saveEqLogic(_eqLogic) {
   }
   _eqLogic.configuration.lamps = lamps
 
-  var keys = ['evening', 'morning']
-  for (var k = 0; k < keys.length; k++) {
-    var slot = lampesoirmatinbeReadSlot(keys[k])
-    if (slot !== null) { _eqLogic.configuration[keys[k]] = slot }
+  for (var k = 0; k < LSM_SLOTS.length; k++) {
+    var slot = lampesoirmatinbeReadSlot(LSM_SLOTS[k])
+    if (slot !== null) { _eqLogic.configuration[LSM_SLOTS[k]] = slot }
   }
   return _eqLogic
 }

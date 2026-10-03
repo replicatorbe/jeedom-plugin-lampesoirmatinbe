@@ -304,17 +304,26 @@ function lampesoirmatinbeSlot($_key, $_title, $_icon, $_help) {
 			<!-- ========================================= PROGRAMMATION ========================================= -->
 			<div role="tabpanel" class="tab-pane" id="scheduletab">
 				<br>
+				<div class="col-xs-12">
+					<div class="alert alert-info" style="margin:5px 5px 15px 5px;">
+						{{Quatre moments pour rythmer la journée, dans l'ordre où ils se jouent : <b>Le soir</b> allume, <b>La nuit</b> éteint au milieu de la nuit, <b>L'aube</b> rallume avant le lever, <b>Le matin</b> éteint quand il fait jour. Les deux moments du milieu sont désactivés par défaut : qui ne les règle pas garde le fonctionnement d'origine, soir et matin, rien de plus.}}
+					</div>
+				</div>
 				<div class="col-lg-6">
 					<form class="form-horizontal">
 						<?php
 						lampesoirmatinbeSlot('evening', '{{Le soir}}', 'fas fa-moon',
 							'{{Le moment où l\'on veut de la lumière en rentrant : le plus souvent un quart d\'heure avant le coucher du soleil.}}');
+						lampesoirmatinbeSlot('night', '{{La nuit}}', 'fas fa-cloud-moon',
+							'{{Éteindre au milieu de la nuit, quand plus personne ne veille : économie, discrétion, et des lampes qui ne restent pas allumées pour rien jusqu\'au matin.}}');
 						?>
 					</form>
 				</div>
 				<div class="col-lg-6">
 					<form class="form-horizontal">
 						<?php
+						lampesoirmatinbeSlot('preDawn', '{{L\'aube}}', 'fas fa-cloud-sun',
+							'{{Rallumer avant le lever du soleil pour que la maison ne soit pas noire au réveil, puis laisser le matin les éteindre quand il fait jour.}}');
 						lampesoirmatinbeSlot('morning', '{{Le matin}}', 'fas fa-sun',
 							'{{Le moment où la lumière ne sert plus : au lever du soleil, ou à heure fixe pour couper après le coucher.}}');
 						?>

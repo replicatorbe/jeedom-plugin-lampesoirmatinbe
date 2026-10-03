@@ -78,6 +78,17 @@ verifie('case absente devient 0', $absent['enable'], 0);
 verifie('mode inconnu retombe sur heure fixe',
         lampesoirmatinbeSun::cleanSlot(array('mode' => 'lune'))['mode'], 'fixed');
 
+/* L'heure par défaut explicite l'emporte sur celle dérivée de l'action : « La
+ * nuit » veut 23:30, « L'aube » veut 06:00, et confondre les deux poserait
+ * l'extinction de nuit à la même heure que l'allumage du soir. */
+$nuit = lampesoirmatinbeSun::emptySlot('off', '23:30');
+verifie('heure par défaut de la nuit', $nuit['time'], '23:30');
+$aube = lampesoirmatinbeSun::emptySlot('on', '06:00');
+verifie('heure par défaut de l\'aube', $aube['time'], '06:00');
+/* Une heure par défaut absurde est ignorée : on retombe sur celle de l'action. */
+$fallback = lampesoirmatinbeSun::emptySlot('on', 'minuit');
+verifie('heure par défaut invalide ignorée', $fallback['time'], '19:00');
+
 /* ------------------------------------------------------------------ 3 ---
  * Le tirage aléatoire. Il doit être stable sur la journée, sinon l'heure
  * annoncée dans l'interface n'est pas celle qui sera jouée, et le moment part

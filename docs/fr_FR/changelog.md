@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4
+
+- Deux moments supplémentaires, « La nuit » et « L'aube », à placer entre le
+  soir et le matin : éteindre au milieu de la nuit quand plus personne ne
+  veille, puis rallumer avant le lever pour que la maison ne soit pas noire au
+  réveil. Désactivés par défaut : qui n'y touche pas garde le fonctionnement
+  d'origine, soir et matin, rien de plus. Chaque moment reste réglable à la
+  carte — heure fixe ou soleil, garde-fous, jours, décalage aléatoire — et une
+  bannière en tête de l'onglet rappelle l'ordre de la journée.
+- Deux commandes d'information de plus, « Prochaine nuit » et « Prochaine
+  aube » (masquées par défaut, comme leurs aînées).
+
 ## 1.3
 
 - La commande « État » suit désormais les lampes elles-mêmes, et non le dernier

@@ -40,13 +40,24 @@ class lampesoirmatinbeSun {
     /* Bornes du tirage aléatoire de simulation de présence. */
     const RANDOM_MAX = 120;
 
-    /* Un réglage vide, tel qu'un équipement neuf le reçoit. */
-    public static function emptySlot($_action = 'on') {
+    /*
+     * Un réglage vide, tel qu'un équipement neuf le reçoit.
+     *
+     * L'heure par défaut est donnée explicitement par la classe principale, qui
+     * connaît la place du moment dans la journée : « Le soir » veut 19 h, « La
+     * nuit » veut 23 h 30, et confondre les deux poserait l'extinction de nuit à
+     * la même heure que l'allumage du soir.
+     */
+    public static function emptySlot($_action = 'on', $_defaultTime = '') {
+        $time = self::cleanTime($_defaultTime);
+        if ($time === '') {
+            $time = ($_action == 'off') ? '07:00' : '19:00';
+        }
         return array(
             'enable'     => 0,
             'action'     => ($_action == 'off') ? 'off' : 'on',
             'mode'       => self::MODE_FIXED,
-            'time'       => ($_action == 'off') ? '07:00' : '19:00',
+            'time'       => $time,
             'offset'     => 0,
             'random'     => 0,
             'not_before' => '',
@@ -63,8 +74,8 @@ class lampesoirmatinbeSun {
      * fausse sans bruit : le moment ne partirait jamais et rien ne le dirait.
      * On normalise donc une fois pour toutes, à l'enregistrement.
      */
-    public static function cleanSlot($_slot, $_action = 'on') {
-        $clean = self::emptySlot($_action);
+    public static function cleanSlot($_slot, $_action = 'on', $_defaultTime = '') {
+        $clean = self::emptySlot($_action, $_defaultTime);
         if (!is_array($_slot)) {
             return $clean;
         }

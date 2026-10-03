@@ -12,9 +12,12 @@ scénario.
 - **Un bouton pour reconnaître la bonne lampe.** Chaque ligne du sélecteur
   allume et éteint la lampe pour de vrai, et une pastille montre son état.
   C'est la façon la plus rapide de savoir laquelle est « Module 3 ».
-- **Deux moments, pas davantage.** Un groupe, un moment le soir, un moment le
-  matin. Ce qui s'allume le soir est exactement ce qui s'éteint le matin, par
-  construction.
+- **La journée en quatre temps, à la carte.** Un groupe, un moment le soir, un
+  moment le matin — et, pour qui le veut, une extinction au milieu de la nuit
+  et un ré-allumage avant le lever. Les deux moments du milieu sont désactivés
+  par défaut : qui n'y touche pas garde le fonctionnement d'origine, soir et
+  matin, rien de plus. Ce qui s'allume le soir est exactement ce qui s'éteint
+  à chaque fois : un groupe, les mêmes lampes.
 - **À l'heure ou au soleil.** Heure fixe, ou tant de minutes avant ou après le
   lever ou le coucher du soleil — calculé pour la position de votre
   installation, celle dont Jeedom se sert déjà dans ses scénarios.
@@ -67,6 +70,7 @@ Plugins → Gestion des plugins → Ajouter → Github, puis :
 cron du cœur (chaque minute)
         │
         ├─ pour chaque groupe actif, pour chaque moment activé :
+        │     (soir, nuit, aube, matin — les deux centraux sont off par défaut)
         │     lampesoirmatinbeSun::dueOccurrence()
         │         heure fixe | soleil ± n min → garde-fous → tirage du jour
         │         passé depuis moins que le rattrapage, pas déjà joué ?

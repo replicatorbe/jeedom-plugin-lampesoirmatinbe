@@ -118,14 +118,16 @@ try {
      * à l'ouverture d'un équipement. */
     if (init('action') == 'group') {
         $eqLogic = $getGroup(init('id'));
-        ajax::success(array(
+        $previews = array();
+        foreach (lampesoirmatinbe::SLOTS as $key) {
+            $previews[$key] = $eqLogic->previewSlot($key);
+        }
+        ajax::success(array_merge(array(
             'lamps'       => $eqLogic->lampList(),
-            'evening'     => $eqLogic->previewSlot('evening'),
-            'morning'     => $eqLogic->previewSlot('morning'),
             'paused'      => $eqLogic->isPaused() ? 1 : 0,
             'pausedSince' => $eqLogic->getConfiguration('paused_since', ''),
             'hasPosition' => lampesoirmatinbe::hasPosition() ? 1 : 0,
-        ));
+        ), $previews));
     }
 
     /*
@@ -138,8 +140,13 @@ try {
      */
     if (init('action') == 'preview') {
         $slot = json_decode(init('slot'), true);
-        $key  = (init('key') == 'morning') ? 'morning' : 'evening';
-        $id   = init('id');
+        $key  = init('key');
+        /* Une clé reçue qui n'est pas dans SLOTS retombe sur le soir : un appel
+         * dévoyé ne doit pas faire planter l'aperçu. */
+        if (!in_array($key, lampesoirmatinbe::SLOTS, true)) {
+            $key = 'evening';
+        }
+        $id = init('id');
         /* Un groupe pas encore enregistré n'a pas d'identifiant : l'aperçu se
          * fait alors sur un groupe vide, ce qui ne change que la graine du
          * tirage aléatoire. */
