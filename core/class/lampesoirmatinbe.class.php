@@ -328,12 +328,15 @@ class lampesoirmatinbe extends eqLogic {
         }
 
         /* Le bouton « Allumer » agit sur l'état affiché : sans ce lien, la tuile
-         * garde l'ancien état jusqu'au prochain ordre. */
-        $state = $this->getCmd(null, 'state');
-        foreach (array('on', 'off') as $logicalId) {
+         * garde l'ancien état jusqu'au prochain ordre. « Basculer » change le
+         * même état ; « Suspendre » et « Reprendre », la programmation. */
+        $links = array('on' => 'state', 'off' => 'state', 'toggle' => 'state',
+                       'pause' => 'active', 'resume' => 'active');
+        foreach ($links as $logicalId => $infoId) {
             $cmd = $this->getCmd(null, $logicalId);
-            if (is_object($cmd) && is_object($state) && $cmd->getValue() != $state->getId()) {
-                $cmd->setValue($state->getId());
+            $info = $this->getCmd(null, $infoId);
+            if (is_object($cmd) && is_object($info) && $cmd->getValue() != $info->getId()) {
+                $cmd->setValue($info->getId());
                 $cmd->save();
             }
         }

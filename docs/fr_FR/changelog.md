@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1
+
+- **Basculer** est liée à l'info « État », comme « Allumer » et « Éteindre » ;
+  **Suspendre** et **Reprendre** à « Programmation active ». Les commandes
+  existantes sont rattachées au prochain enregistrement de l'équipement.
+
 ## 1.4
 
 - Deux moments supplémentaires, « La nuit » et « L'aube », à placer entre le
