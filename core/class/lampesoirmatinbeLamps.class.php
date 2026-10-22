@@ -419,7 +419,9 @@ class lampesoirmatinbeLamps {
         }
         try {
             $cmd = cmd::byId($_cmdId);
-            if (!is_object($cmd)) {
+            /* Seule une commande info se lit : sur une action, execCmd()
+             * l'exécuterait, et l'identifiant peut venir du navigateur. */
+            if (!is_object($cmd) || $cmd->getType() != 'info') {
                 return null;
             }
             $value = $cmd->execCmd();
